@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>BLACK 3D BARCODE SCANNER</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: black;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            color: white;
+        }
+
+        /* 3D Animated Background - Pure Black & White */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+
+        /* Main Container - Full Black with 3D effect */
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            max-height: 900px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            background: #000000;
+            border: 1px solid #333333;
+            box-shadow: 
+                0 30px 40px rgba(0, 0, 0, 1),
+                0 0 0 1px #222 inset,
+                0 0 30px rgba(255, 255, 255, 0.05);
+            transform: perspective(2000px) rotateX(1deg) rotateY(0.5deg);
+            border-radius: 40px;
+            margin: 10px;
+        }
+
+        /* Header - Pure White Text */
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            font-weight: 900;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.3),
+                0 0 20px rgba(255, 255, 255, 0.2);
+            animation: textPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes textPulse {
+            0%, 100% { opacity: 1; text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+            50% { opacity: 0.9; text-shadow: 0 0 20px rgba(255, 255, 255, 0.5); }
+        }
+
+        .header p {
+            color: #888;
+            font-size: 0.8em;
+            letter-spacing: 2px;
+        }
+
+        /* Camera Container - Black & White Theme */
+        .camera-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 30px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            background: #0a0a0a;
+            border: 2px solid #222;
+            box-shadow: 
+                0 0 0 1px #333,
+                0 20px 30px rgba(0, 0, 0, 0.8),
+                inset 0 0 30px rgba(0, 0, 0, 0.9);
+            transform: translateZ(20px);
+        }
+
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            filter: grayscale(100%) contrast(1.2) brightness(0.8);
+        }
+
+        /* Scanner Overlay - Black & White Only */
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #fff, #888, #fff, transparent);
+            animation: scanMove 2.5s linear infinite;
+            opacity: 0.6;
+            mix-blend-mode: overlay;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes scanMove {
+            0% { top: -10px; opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { top: 110%; opacity: 0; }
+        }
+
+        .corner-3d {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border: 3px solid #fff;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+            opacity: 0.7;
+        }
+
+        .corner-tl { top: 15px; left: 15px; border-right: none; border-bottom: none; }
+        .corner-tr { top: 15px; right: 15px; border-left: none; border-bottom: none; }
+        .corner-bl { bottom: 15px; left: 15px; border-right: none; border-top: none; }
+        .corner-br { bottom: 15px; right: 15px; border-left: none; border-top: none; }
+
+        .focus-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 75%;
+            height: 75%;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            animation: focusPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes focusPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+            50% { transform: translate(-50%, -50%) scale(1.02); opacity: 0.6; }
+        }
+
+        /* Status Bar - Black & White */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            background: #0a0a0a;
+            border-radius: 50px;
+            border: 1px solid #222;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8);
+        }
+
+        .led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #333;
+            box-shadow: 0 0 5px #666;
+            transition: all 0.1s ease;
+        }
+
+        .led.active {
+            background: #fff;
+            box-shadow: 0 0 20px #fff;
+        }
+
+        .status-text {
+            color: #ccc;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .fps-counter {
+            color: #888;
+            font-family: monospace;
+            font-size: 0.8em;
+            background: #111;
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px solid #333;
+        }
+
+        /* Controls - Pure Black with White Text */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .btn-3d {
+            padding: 15px 5px;
+            border: none;
+            border-radius: 25px;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            background: #111;
+            color: #fff;
+            border: 1px solid #222;
+            box-shadow: 
+                0 8px 0 #000,
+                0 10px 15px rgba(0, 0, 0, 0.5);
+            transition: all 0.1s ease;
+            position: relative;
+            font-weight: 800;
+        }
+
+        .btn-3d:active {
+            transform: translateY(5px);
+            box-shadow: 
+                0 3px 0 #000,
+                0 8px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-3d.active {
+            background: #222;
+            border-color: #666;
+            color: #fff;
+        }
+
+        /* Result Card - Black & White */
+        .result-card {
+            background: #0a0a0a;
+            border-radius: 25px;
+            padding: 15px;
+            border: 1px solid #222;
+            margin-bottom: 15px;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9);
+        }
+
+        .result-label {
+            color: #888;
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        #real-result {
+            color: #fff;
+            font-size: 1.2em;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            min-height: 60px;
+            padding: 12px;
+            background: #111;
+            border-radius: 15px;
+            border-left: 4px solid #fff;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+            line-height: 1.4;
+        }
+
+        /* History Panel - Black Theme */
+        .history-panel {
+            flex: 1;
+            background: #0a0a0a;
+            border-radius: 25px;
+            padding: 15px;
+            border: 1px solid #222;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: #ccc;
+        }
+
+        .history-title {
+            font-size: 1em;
+            letter-spacing: 2px;
+        }
+
+        .history-count {
+            background: #1a1a1a;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            color: #aaa;
+            border: 1px solid #333;
+        }
+
+        #real-history {
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 5px;
+        }
+
+        #real-history li {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #111;
+            border-radius: 15px;
+            color: #ddd;
+            font-family: monospace;
+            font-size: 0.9em;
+            border-left: 4px solid #666;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            word-break: break-all;
+            animation: slideIn 0.2s ease;
+            border: 1px solid #222;
+        }
+
+        #real-history li:active {
+            transform: scale(0.98);
+            background: #1a1a1a;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        #real-history::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        #real-history::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 10px;
+        }
+
+        #real-history::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 10px;
+        }
+
+        /* Stats - Black & White */
+        .stats-3d {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            background: #0f0f0f;
+            border-radius: 20px;
+            padding: 12px 5px;
+            text-align: center;
+            border: 1px solid #222;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+        }
+
+        .stat-value {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.6em;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Permission Dialog - Full Black */
+        .permission-dialog {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border-radius: 40px;
+            border: 1px solid #222;
+        }
+
+        .permission-content {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .camera-icon {
+            width: 80px;
+            height: 80px;
+            border: 3px solid #fff;
+            border-radius: 30px;
+            margin: 20px auto;
+            position: relative;
+            animation: iconPulse 2s infinite;
+            opacity: 0.5;
+        }
+
+        .camera-icon::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 25px;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #fff;
+            border-radius: 50%;
+        }
+
+        .camera-icon::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 15px;
+            height: 15px;
+            background: #fff;
+            border-radius: 50%;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 0.7; }
+        }
+
+        .permission-text {
+            color: #fff;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+
+        #request-permission {
+            background: transparent;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            letter-spacing: 2px;
+            background: #111;
+        }
+
+        #request-permission:active {
+            background: #fff;
+            color: #000;
+            transform: scale(0.95);
+        }
+
+        /* Notification - Black & White */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #222;
+            color: #fff;
+            padding: 12px 25px;
+            border-radius: 40px;
+            font-weight: bold;
+            z-index: 2000;
+            animation: notifSlide 0.3s ease;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.8);
+            border: 1px solid #444;
+            white-space: nowrap;
+        }
+
+        @keyframes notifSlide {
+            from {
+                bottom: -100px;
+                opacity: 0;
+            }
+            to {
+                bottom: 20px;
+                opacity: 1;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                height: 100vh;
+                max-height: none;
+            }
+            
+            .btn-3d {
+                padding: 12px 2px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D WebGL Background - Black & White -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>BLACK SCAN 3D</h1>
+            <p>MONOCHROME EDITION</p>
+        </div>
+
+        <!-- Camera Section -->
+        <div class="camera-container">
+            <video id="camera-feed" playsinline autoplay></video>
+            <div class="scanner-overlay">
+                <div class="scan-line"></div>
+                <div class="corner-3d corner-tl"></div>
+                <div class="corner-3d corner-tr"></div>
+                <div class="corner-3d corner-bl"></div>
+                <div class="corner-3d corner-br"></div>
+                <div class="focus-ring"></div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="led" id="real-led"></div>
+            <div class="status-text" id="real-status">INITIALIZING...</div>
+            <div class="fps-counter" id="fps-counter">0 FPS</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn-3d" id="btn-start">START</button>
+            <button class="btn-3d" id="btn-stop">STOP</button>
+            <button class="btn-3d" id="btn-copy">COPY</button>
+            <button class="btn-3d" id="btn-clear">CLEAR</button>
+        </div>
+
+        <!-- Result -->
+        <div class="result-card">
+            <div class="result-label">SCAN RESULT</div>
+            <div id="real-result">Waiting for barcode...</div>
+        </div>
+
+        <!-- History -->
+        <div class="history-panel">
+            <div class="history-header">
+                <span class="history-title">HISTORY</span>
+                <span class="history-count" id="history-count">0</span>
+            </div>
+            <ul id="real-history"></ul>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-3d">
+            <div class="stat-item">
+                <div class="stat-value" id="stat-total">0</div>
+                <div class="stat-label">TOTAL</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-unique">0</div>
+                <div class="stat-label">UNIQUE</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-rate">0</div>
+                <div class="stat-label">/MIN</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Permission Dialog -->
+    <div class="permission-dialog" id="permission-dialog">
+        <div class="permission-content">
+            <div class="camera-icon"></div>
+            <div class="permission-text">Camera access required for scanning</div>
+            <button id="request-permission">ENABLE CAMERA</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script>
+        // REAL Barcode Scanner - Pure Black Theme
+        (function() {
+            // DOM Elements
+            const video = document.getElementById('camera-feed');
+            const resultDiv = document.getElementById('real-result');
+            const historyList = document.getElementById('real-history');
+            const statusLed = document.getElementById('real-led');
+            const statusText = document.getElementById('real-status');
+            const permissionDialog = document.getElementById('permission-dialog');
+            const requestBtn = document.getElementById('request-permission');
+            const fpsCounter = document.getElementById('fps-counter');
+            
+            // Stats elements
+            const statTotal = document.getElementById('stat-total');
+            const statUnique = document.getElementById('stat-unique');
+            const statRate = document.getElementById('stat-rate');
+            const historyCount = document.getElementById('history-count');
+
+            // Buttons
+            const startBtn = document.getElementById('btn-start');
+            const stopBtn = document.getElementById('btn-stop');
+            const copyBtn = document.getElementById('btn-copy');
+            const clearBtn = document.getElementById('btn-clear');
+
+            // Scanner variables
+            const codeReader = new ZXing.BrowserMultiFormatReader();
+            let scanning = false;
+            let activeStream = null;
+            
+            // Data storage
+            let scanHistory = [];
+            let uniqueScans = new Set();
+            let scanTimes = [];
+            let scanCount = 0;
+
+            // FPS calculation
+            let frameCount = 0;
+            let lastFpsUpdate = Date.now();
+
+            // WebGL Background - Black & White 3D
+            function initWebGL() {
+                const canvas = document.getElementById('bg-canvas');
+                const gl = canvas.getContext('webgl');
+                
+                if (!gl) return;
+
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    gl.viewport(0, 0, canvas.width, canvas.height);
+                }
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+
+                // Simple shader for 3D effect - Black & White only
+                const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+                gl.shaderSource(vertexShader, `
+                    attribute vec2 position;
+                    void main() {
+                        gl_Position = vec4(position, 0.0, 1.0);
+                    }
+                `);
+                gl.compileShader(vertexShader);
+
+                const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+                gl.shaderSource(fragmentShader, `
+                    precision highp float;
+                    uniform float time;
+                    
+                    void main() {
+                        vec2 uv = gl_FragCoord.xy / 800.0;
+                        float pattern = sin(uv.x * 20.0 + time) * cos(uv.y * 20.0 + time);
+                        pattern = pattern * 0.1 + 0.1;
+                        gl_FragColor = vec4(vec3(pattern), 1.0);
+                    }
+                `);
+                gl.compileShader(fragmentShader);
+
+                const program = gl.createProgram();
+                gl.attachShader(program, vertexShader);
+                gl.attachShader(program, fragmentShader);
+                gl.linkProgram(program);
+                gl.useProgram(program);
+
+                const vertices = new Float32Array([
+                    -1, -1,
+                     1, -1,
+                    -1,  1,
+                     1,  1
+                ]);
+
+                const buffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+                const position = gl.getAttribLocation(program, 'position');
+                gl.enableVertexAttribArray(position);
+                gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+                const timeLocation = gl.getUniformLocation(program, 'time');
+
+                function animate() {
+                    gl.uniform1f(timeLocation, performance.now() / 1000);
+                    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                    requestAnimationFrame(animate);
+                }
+                animate();
+            }
+            initWebGL();
+
+            // Show notification
+            function showNotification(message, isError = false) {
+                const notif = document.createElement('div');
+                notif.className = 'notification';
+                notif.textContent = message;
+                if (isError) {
+                    notif.style.background = '#300';
+                    notif.style.color = '#f88';
+                    notif.style.borderColor = '#600';
+                }
+                document.body.appendChild(notif);
+                
+                setTimeout(() => {
+                    notif.style.animation = 'notifSlide 0.3s reverse';
+                    setTimeout(() => notif.remove(), 300);
+                }, 2000);
+            }
+
+            // Update stats
+            function updateStats() {
+                statTotal.textContent = scanCount;
+                historyCount.textContent = scanHistory.length;
+                statUnique.textContent = uniqueScans.size;
+                
+                const now = Date.now();
+                const oneMinuteAgo = now - 60000;
+                const recentScans = scanTimes.filter(t => t > oneMinuteAgo);
+                statRate.textContent = recentScans.length;
+                
+                frameCount++;
+                if (now - lastFpsUpdate > 1000) {
+                    fpsCounter.textContent = frameCount + ' FPS';
+                    frameCount = 0;
+                    lastFpsUpdate = now;
+                }
+            }
+
+            // Add to history
+            function addToHistory(text) {
+                const timestamp = new Date().toLocaleTimeString('id-ID', { 
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                const isUnique = !uniqueScans.has(text);
+                if (isUnique) {
+                    uniqueScans.add(text);
+                }
+                
+                scanHistory.unshift({
+                    text,
+                    timestamp
+                });
+                
+                if (scanHistory.length > 50) {
+                    scanHistory.pop();
+                }
+                
+                historyList.innerHTML = '';
+                scanHistory.forEach((item) => {
+                    const li = document.createElement('li');
+                    li.textContent = `[${item.timestamp}] ${item.text}`;
+                    
+                    li.addEventListener('click', () => {
+                        resultDiv.textContent = item.text;
+                        navigator.clipboard.writeText(item.text);
+                        showNotification('Copied to clipboard');
+                    });
+                    
+                    historyList.appendChild(li);
+                });
+                
+                scanTimes.push(Date.now());
+                scanTimes = scanTimes.slice(-100);
+                
+                updateStats();
+            }
+
+            // Start camera
+            async function startCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        } 
+                    });
+                    
+                    activeStream = stream;
+                    video.srcObject = stream;
+                    
+                    permissionDialog.style.display = 'none';
+                    
+                    statusLed.classList.add('active');
+                    statusText.textContent = 'CAMERA READY';
+                    
+                    showNotification('Camera activated');
+                    
+                } catch (error) {
+                    console.error('Camera error:', error);
+                    statusText.textContent = 'CAMERA ERROR';
+                    showNotification('Failed to access camera', true);
+                }
+            }
+
+            // Start scanning
+            function startScanning() {
+                if (scanning) return;
+                
+                try {
+                    codeReader.decodeFromVideoDevice(null, video, (result, error) => {
+                        if (result) {
+                            const text = result.getText();
+                            
+                            resultDiv.textContent = text;
+                            addToHistory(text);
+                            scanCount++;
+                            
+                            // Flash effect
+                            video.style.animation = 'none';
+                            video.offsetHeight;
+                            video.style.animation = 'flash 0.1s ease';
+                            
+                            // Simple beep
+                            try {
+                                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                                const oscillator = audioCtx.createOscillator();
+                                const gainNode = audioCtx.createGain();
+                                oscillator.connect(gainNode);
+                                gainNode.connect(audioCtx.destination);
+                                oscillator.frequency.value = 800;
+                                gainNode.gain.value = 0.05;
+                                oscillator.start();
+                                oscillator.stop(audioCtx.currentTime + 0.03);
+                            } catch (e) {}
+                            
+                            updateStats();
+                        }
+                        
+                        frameCount++;
+                    });
+                    
+                    scanning = true;
+                    statusLed.classList.add('active');
+                    statusText.textContent = 'SCANNING';
+                    startBtn.classList.add('active');
+                    
+                } catch (error) {
+                    console.error('Scanning error:', error);
+                    showNotification('Scanning error', true);
+                }
+            }
+
+            // Stop scanning
+            function stopScanning() {
+                if (codeReader) {
+                    codeReader.reset();
+                }
+                scanning = false;
+                statusLed.classList.remove('active');
+                statusText.textContent = 'STOPPED';
+                startBtn.classList.remove('active');
+            }
+
+            // Stop camera
+            function stopCamera() {
+                if (activeStream) {
+                    activeStream.getTracks().forEach(track => track.stop());
+                    activeStream = null;
+                }
+                if (scanning) {
+                    stopScanning();
+                }
+                video.srcObject = null;
+                permissionDialog.style.display = 'flex';
+                statusText.textContent = 'CAMERA OFF';
+            }
+
+            // Event Listeners
+            requestBtn.addEventListener('click', startCamera);
+
+            startBtn.addEventListener('click', () => {
+                if (!activeStream) {
+                    showNotification('Start camera first', true);
+                    return;
+                }
+                startScanning();
+            });
+
+            stopBtn.addEventListener('click', () => {
+                stopScanning();
+                showNotification('Scanner stopped');
+            });
+
+            copyBtn.addEventListener('click', () => {
+                const text = resultDiv.textContent;
+                if (text && text !== 'Waiting for barcode...') {
+                    navigator.clipboard.writeText(text);
+                    showNotification('Copied: ' + text.substring(0, 20) + (text.length > 20 ? '...' : ''));
+                } else {
+                    showNotification('Nothing to copy', true);
+                }
+            });
+
+            clearBtn.addEventListener('click', () => {
+                scanHistory = [];
+                uniqueScans.clear();
+                scanTimes = [];
+                scanCount = 0;
+                historyList.innerHTML = '';
+                resultDiv.textContent = 'Waiting for barcode...';
+                updateStats();
+                showNotification('History cleared');
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !e.repeat) {
+                    e.preventDefault();
+                    if (scanning) {
+                        stopScanning();
+                    } else {
+                        startScanning();
+                    }
+                } else if (e.key === 'c' && e.ctrlKey) {
+                    e.preventDefault();
+                    copyBtn.click();
+                } else if (e.key === 'Escape') {
+                    clearBtn.click();
+                }
+            });
+
+            // Add flash animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes flash {
+                    0% { filter: grayscale(100%) brightness(0.8); }
+                    50% { filter: grayscale(0%) brightness(1.2); }
+                    100% { filter: grayscale(100%) brightness(0.8); }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Check camera support
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                permissionDialog.querySelector('.permission-text').textContent = 
+                    'Camera not supported';
+                requestBtn.disabled = true;
+                requestBtn.style.opacity = '0.5';
+            }
+
+            // FPS update
+            setInterval(updateStats, 100);
+
+            // Handle visibility
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && scanning) {
+                    stopScanning();
+                }
+            });
+
+            // Cleanup
+            window.addEventListener('beforeunload', () => {
+                if (activeStream) {
+                    activeStream.getTracks().forEach(track => track.stop());
+                }
+                if (codeReader) {
+                    codeReader.reset();
+                }
+            });
+
+            console.log('Black Theme Scanner Ready');
+        })();
+    </script>
+</body>
+</html>
